@@ -71,11 +71,11 @@ const DEFAULT_CONTENT = {
   },
   videos: [""],
   imageFits: {
-    hero: "cover",
+    hero: "contain",
     fire: "cover",
     coal: "cover",
-    product: "cover",
-    box: "cover",
+    product: "contain",
+    box: "contain",
     background: "cover",
   },
 };
@@ -492,16 +492,20 @@ function AdminPage({ content, setContent, goSite, onLogout, onSaveToServer, isSa
 
           <AdminBlock title="Зураг upload">
             <p className="text-sm leading-6 text-neutral-400">URL бичихгүй. Компьютероосоо зураг сонгоод upload хийж солино.</p>
-            {Object.entries(content.images).map(([key, value]) => (
-              <ImageUpload 
-                key={key} 
-                label={`${key} зураг`} 
-                value={value} 
-                onChange={(newValue) => updateImage(key, newValue)} 
-                fit={content.imageFits?.[key] || "cover"}
-                onFitChange={(newFit) => updateImageFit(key, newFit)}
-              />
-            ))}
+            {Object.entries(content.images).map(([key, value]) => {
+              const defaultFit = ["hero", "box", "product"].includes(key) ? "contain" : "cover";
+              const currentFit = content.imageFits?.[key] || defaultFit;
+              return (
+                <ImageUpload 
+                  key={key} 
+                  label={`${key} зураг`} 
+                  value={value} 
+                  onChange={(newValue) => updateImage(key, newValue)} 
+                  fit={currentFit}
+                  onFitChange={(newFit) => updateImageFit(key, newFit)}
+                />
+              );
+            })}
           </AdminBlock>
 
           <AdminBlock title="Статистик">
@@ -609,7 +613,11 @@ function AdminPage({ content, setContent, goSite, onLogout, onSaveToServer, isSa
 function LandingPage({ content, goAdmin }) {
   const phoneHref = `tel:${cleanPhone(content.brand.phone)}`;
   const imageUrl = (key) => content.images[key] || content.images.hero;
-  const imageFit = (key) => content.imageFits?.[key] || "cover";
+  const imageFit = (key) => {
+    if (content.imageFits?.[key]) return content.imageFits[key];
+    if (["hero", "box", "product"].includes(key)) return "contain";
+    return "cover";
+  };
   const embedUrls = useMemo(() => content.videos.map(getYouTubeEmbedUrl).filter(Boolean), [content.videos]);
 
   return (
@@ -666,8 +674,10 @@ function LandingPage({ content, goAdmin }) {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-3xl border border-white/10 bg-neutral-900 shadow-2xl shadow-orange-500/10">
-              <div className="relative h-[520px]"><Img src={content.images.hero} alt="UGOLBOY" fit={imageFit("hero")} /></div>
+            <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl shadow-orange-500/10 flex items-center justify-center p-4">
+              <div className="relative h-[480px] w-full flex items-center justify-center">
+                <Img src={content.images.hero} alt="UGOLBOY" fit={imageFit("hero")} className="max-h-full max-w-full rounded-2xl" />
+              </div>
             </div>
           </div>
         </section>
@@ -707,9 +717,11 @@ function LandingPage({ content, goAdmin }) {
             <SectionTitle label="Монгол хэрэглээ" title="Зөвхөн шорлог биш. Ил гал шаардсан олон хэрэглээнд." />
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {content.uses.map((item, index) => (
-                <div key={index} className="overflow-hidden rounded-3xl border border-white/10 bg-white/5">
-                  <div className="h-44 bg-neutral-900"><Img src={imageUrl(item.image)} alt={item.title} fit={imageFit(item.image)} /></div>
-                  <div className="p-6"><h3 className="mb-3 text-xl font-black">{item.title}</h3><p className="leading-7 text-neutral-400">{item.text}</p></div>
+                <div key={index} className="overflow-hidden rounded-3xl border border-white/10 bg-white/5 flex flex-col justify-between">
+                  <div className="h-44 bg-white/5 p-2 flex items-center justify-center border-b border-white/10">
+                    <Img src={imageUrl(item.image)} alt={item.title} fit={imageFit(item.image)} className="max-h-full max-w-full rounded-xl" />
+                  </div>
+                  <div className="p-6 flex-1"><h3 className="mb-3 text-xl font-black">{item.title}</h3><p className="leading-7 text-neutral-400">{item.text}</p></div>
                 </div>
               ))}
             </div>
@@ -724,9 +736,12 @@ function LandingPage({ content, goAdmin }) {
             </div>
             <div className="grid gap-5 lg:grid-cols-3">
               {content.products.map((item, index) => (
-                <div key={index} className="overflow-hidden rounded-3xl border border-white/10 bg-neutral-950 shadow-xl">
-                  <div className="relative h-64 bg-neutral-900"><Img src={imageUrl(item.image)} alt={item.title} fit={imageFit(item.image)} /><div className="absolute left-5 top-5 rounded-full bg-orange-500/90 px-3 py-1 text-xs font-black">{item.badge}</div></div>
-                  <div className="p-6"><h3 className="text-2xl font-black">{item.title}</h3><p className="mt-2 font-bold text-orange-300">{item.subtitle}</p><p className="mt-4 leading-7 text-neutral-400">{item.text}</p></div>
+                <div key={index} className="overflow-hidden rounded-3xl border border-white/10 bg-neutral-950 shadow-xl flex flex-col justify-between">
+                  <div className="relative h-64 bg-white/5 p-4 flex items-center justify-center border-b border-white/10">
+                    <Img src={imageUrl(item.image)} alt={item.title} fit={imageFit(item.image)} className="max-h-full max-w-full rounded-2xl" />
+                    <div className="absolute left-5 top-5 rounded-full bg-orange-500/90 px-3 py-1 text-xs font-black z-10">{item.badge}</div>
+                  </div>
+                  <div className="p-6 flex-1"><h3 className="text-2xl font-black">{item.title}</h3><p className="mt-2 font-bold text-orange-300">{item.subtitle}</p><p className="mt-4 leading-7 text-neutral-400">{item.text}</p></div>
                 </div>
               ))}
             </div>
