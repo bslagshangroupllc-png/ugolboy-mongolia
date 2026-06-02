@@ -766,7 +766,7 @@ function LandingPage({ content, goAdmin }) {
         </section>
 
         <section id="videos" className="bg-neutral-950 px-4 py-20 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl"><SectionTitle label="Видео" title="UGOLBOY түлшийг бодит хэрэглээнд харах" text="Админ хэсгээс YouTube линк нэмэхэд видео автоматаар энд тоглогдоно." />
+          <div className="mx-auto max-w-7xl"><SectionTitle label="Видео" title="UGOLBOY түлшийг бодит хэрэглээнд харах" />
             {embedUrls.length > 0 ? <div className="grid gap-6 lg:grid-cols-2">{embedUrls.map((url, index) => <div key={url} className="overflow-hidden rounded-3xl border border-white/10 bg-neutral-900 shadow-2xl"><div className="aspect-video w-full"><iframe src={url} title={`UGOLBOY video ${index + 1}`} className="h-full w-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen /></div></div>)}</div> : <div className="rounded-3xl border border-white/10 bg-white/5 p-8 text-center text-neutral-400">YouTube линк нэмэгдээгүй байна.</div>}
           </div>
         </section>
