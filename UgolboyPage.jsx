@@ -765,7 +765,7 @@ export default function UgolboyMongoliaLandingPage() {
       }
       const data = await res.json();
       if (data.isNotConfigured) {
-        alert("Vercel KV 설정이 감지되지 않았습니다. Vercel 프로젝트 대시보드에서 Storage -> KV를 추가 및 연결해 주세요.");
+        alert("데이터베이스(Redis/KV) 설정이 감지되지 않았습니다. Vercel 프로젝트 대시보드에서 Storage -> Redis 또는 KV를 연결한 뒤 재배포(Redeploy)해 주세요.");
       } else {
         alert("서버에 성공적으로 저장되었습니다!");
       }

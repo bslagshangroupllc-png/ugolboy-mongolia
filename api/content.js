@@ -1,3 +1,14 @@
+import Redis from 'ioredis';
+
+let redis = null;
+
+function getRedisClient() {
+  if (!redis && process.env.REDIS_URL) {
+    redis = new Redis(process.env.REDIS_URL);
+  }
+  return redis;
+}
+
 export default async function handler(req, res) {
   // CORS configuration
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -13,51 +24,39 @@ export default async function handler(req, res) {
     return;
   }
 
-  const STORAGE_KEY = "ugolboy_mongolia_landing_content_v2";
-  const url = process.env.KV_REST_API_URL || process.env.STORAGE_REST_API_URL || process.env.STORAGE_URL || process.env.KV_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.REDIS_URL;
-  const token = process.env.KV_REST_API_TOKEN || process.env.STORAGE_REST_API_TOKEN || process.env.STORAGE_TOKEN || process.env.KV_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.REDIS_TOKEN;
+  const client = getRedisClient();
 
-  if (!url || !token) {
+  if (!client) {
     return res.status(200).json({ 
-      error: "Vercel KV is not configured. Please connect a KV database in the Vercel project dashboard.",
+      error: "Vercel Redis is not configured. Please connect a Redis database in the Vercel project dashboard.",
       isNotConfigured: true
     });
   }
 
+  const STORAGE_KEY = "ugolboy_mongolia_landing_content_v2";
+
   try {
     if (req.method === 'GET') {
-      const response = await fetch(`${url}/get/${STORAGE_KEY}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      const data = await response.json();
+      const data = await client.get(STORAGE_KEY);
       
       let parsedResult = null;
-      if (data.result) {
+      if (data) {
         try {
-          parsedResult = JSON.parse(data.result);
+          parsedResult = JSON.parse(data);
         } catch {
-          parsedResult = data.result; // If it's already an object
+          parsedResult = data;
         }
       }
       return res.status(200).json(parsedResult || {});
     } else if (req.method === 'POST') {
       const bodyData = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-      const response = await fetch(`${url}/set/${STORAGE_KEY}`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        body: bodyData
-      });
-      const data = await response.json();
-      return res.status(200).json({ success: true, result: data.result });
+      await client.set(STORAGE_KEY, bodyData);
+      return res.status(200).json({ success: true });
     } else {
       return res.status(405).json({ error: 'Method not allowed' });
     }
   } catch (error) {
-    console.error('KV REST API Error:', error);
+    console.error('Redis API Error:', error);
     return res.status(500).json({ error: error.message });
   }
 }
