@@ -70,6 +70,14 @@ const DEFAULT_CONTENT = {
     items: ["2 кг болон 10 кг савлагаа", "Ресторан, грилл, утах үйлчилгээ", "Бөөний болон давтан захиалга", "Монгол хэрэглээнд тохирсон зөвлөгөө"],
   },
   videos: [""],
+  imageFits: {
+    hero: "cover",
+    fire: "cover",
+    coal: "cover",
+    product: "cover",
+    box: "cover",
+    background: "cover",
+  },
 };
 
 function mergeContent(base, saved) {
@@ -149,8 +157,9 @@ function SectionTitle({ label, title, text }) {
   );
 }
 
-function Img({ src, alt, className = "" }) {
-  return <img src={src} alt={alt} loading="lazy" className={`h-full w-full object-cover ${className}`} />;
+function Img({ src, alt, className = "", fit = "cover" }) {
+  const fitClass = fit === "contain" ? "object-contain" : "object-cover";
+  return <img src={src} alt={alt} loading="lazy" className={`h-full w-full ${fitClass} ${className}`} />;
 }
 
 function TextInput({ label, value, onChange, multiline = false, placeholder = "" }) {
@@ -198,7 +207,7 @@ function compressImage(base64Str, maxWidth = 800, maxHeight = 800) {
   });
 }
 
-function ImageUpload({ label, value, onChange }) {
+function ImageUpload({ label, value, onChange, fit = "cover", onFitChange }) {
   function handleFileChange(event) {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
@@ -226,8 +235,8 @@ function ImageUpload({ label, value, onChange }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-neutral-950 p-4 space-y-3">
       <p className="text-sm font-bold text-neutral-300">{label}</p>
-      <div className="h-40 overflow-hidden rounded-2xl border border-white/10 bg-neutral-900">
-        {value ? <Img src={value} alt={label} /> : <div className="flex h-full items-center justify-center text-sm text-neutral-500">Зураг байхгүй</div>}
+      <div className="h-40 overflow-hidden rounded-2xl border border-white/10 bg-neutral-900 flex items-center justify-center">
+        {value ? <Img src={value} alt={label} fit={fit} /> : <div className="flex h-full items-center justify-center text-sm text-neutral-500">Зураг байхгүй</div>}
       </div>
       <div className="grid gap-2">
         <input
@@ -236,6 +245,35 @@ function ImageUpload({ label, value, onChange }) {
           onChange={handleFileChange}
           className="block w-full cursor-pointer rounded-2xl border border-white/10 bg-neutral-900 px-4 py-2 text-sm text-neutral-300 file:mr-4 file:rounded-xl file:border-0 file:bg-orange-500 file:px-4 file:py-1.5 file:font-bold file:text-white hover:bg-neutral-800"
         />
+        {onFitChange && (
+          <div className="flex items-center justify-between gap-2 px-1">
+            <span className="text-xs font-bold text-neutral-400">Харагдах хэлбэр (Fit):</span>
+            <div className="flex rounded-lg bg-neutral-900 p-0.5 border border-white/5">
+              <button
+                type="button"
+                onClick={() => onFitChange("cover")}
+                className={`rounded px-2.5 py-1 text-xs font-bold transition-all ${
+                  fit === "cover"
+                    ? "bg-orange-500 text-white"
+                    : "text-neutral-400 hover:text-white"
+                }`}
+              >
+                Cover
+              </button>
+              <button
+                type="button"
+                onClick={() => onFitChange("contain")}
+                className={`rounded px-2.5 py-1 text-xs font-bold transition-all ${
+                  fit === "contain"
+                    ? "bg-orange-500 text-white"
+                    : "text-neutral-400 hover:text-white"
+                }`}
+              >
+                Contain
+              </button>
+            </div>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <span className="text-xs text-neutral-500 shrink-0">Илүү зураг URL:</span>
           <input 
@@ -368,6 +406,16 @@ function AdminPage({ content, setContent, goSite, onLogout, onSaveToServer, isSa
     setContent((current) => ({ ...current, images: { ...current.images, [key]: value } }));
   }
 
+  function updateImageFit(key, value) {
+    setContent((current) => ({
+      ...current,
+      imageFits: {
+        ...(current.imageFits || {}),
+        [key]: value
+      }
+    }));
+  }
+
   function updateTop(key, value) {
     setContent((current) => ({ ...current, [key]: value }));
   }
@@ -445,7 +493,14 @@ function AdminPage({ content, setContent, goSite, onLogout, onSaveToServer, isSa
           <AdminBlock title="Зураг upload">
             <p className="text-sm leading-6 text-neutral-400">URL бичихгүй. Компьютероосоо зураг сонгоод upload хийж солино.</p>
             {Object.entries(content.images).map(([key, value]) => (
-              <ImageUpload key={key} label={`${key} зураг`} value={value} onChange={(newValue) => updateImage(key, newValue)} />
+              <ImageUpload 
+                key={key} 
+                label={`${key} зураг`} 
+                value={value} 
+                onChange={(newValue) => updateImage(key, newValue)} 
+                fit={content.imageFits?.[key] || "cover"}
+                onFitChange={(newFit) => updateImageFit(key, newFit)}
+              />
             ))}
           </AdminBlock>
 
@@ -554,6 +609,7 @@ function AdminPage({ content, setContent, goSite, onLogout, onSaveToServer, isSa
 function LandingPage({ content, goAdmin }) {
   const phoneHref = `tel:${cleanPhone(content.brand.phone)}`;
   const imageUrl = (key) => content.images[key] || content.images.hero;
+  const imageFit = (key) => content.imageFits?.[key] || "cover";
   const embedUrls = useMemo(() => content.videos.map(getYouTubeEmbedUrl).filter(Boolean), [content.videos]);
 
   return (
@@ -561,7 +617,7 @@ function LandingPage({ content, goAdmin }) {
       <header className="sticky top-0 z-50 border-b border-white/10 bg-neutral-950/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <a href="#home" className="flex items-center gap-3">
-            <div className="h-10 w-10 overflow-hidden rounded-2xl bg-orange-500"><Img src={content.images.fire} alt="fire" /></div>
+            <div className="h-10 w-10 overflow-hidden rounded-2xl bg-orange-500"><Img src={content.images.fire} alt="fire" fit={imageFit("fire")} /></div>
             <div>
               <p className="text-lg font-black tracking-wide">{content.brand.name}</p>
               <p className="text-xs text-neutral-400">{content.brand.subtitle}</p>
@@ -585,7 +641,7 @@ function LandingPage({ content, goAdmin }) {
 
       <main id="home">
         <section className="relative overflow-hidden bg-gradient-to-b from-neutral-900 via-neutral-950 to-black">
-          <div className="absolute inset-0 opacity-25"><Img src={content.images.background} alt="background" /></div>
+          <div className="absolute inset-0 opacity-25"><Img src={content.images.background} alt="background" fit="cover" /></div>
           <div className="absolute left-1/2 top-20 h-80 w-80 -translate-x-1/2 rounded-full bg-orange-500/25 blur-3xl" />
           <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:px-8 lg:py-28">
             <div className="space-y-7">
@@ -611,7 +667,7 @@ function LandingPage({ content, goAdmin }) {
             </div>
 
             <div className="overflow-hidden rounded-3xl border border-white/10 bg-neutral-900 shadow-2xl shadow-orange-500/10">
-              <div className="relative h-[520px]"><Img src={content.images.hero} alt="UGOLBOY" /></div>
+              <div className="relative h-[520px]"><Img src={content.images.hero} alt="UGOLBOY" fit={imageFit("hero")} /></div>
             </div>
           </div>
         </section>
@@ -622,7 +678,7 @@ function LandingPage({ content, goAdmin }) {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {content.benefits.map((item, index) => (
                 <div key={index} className="rounded-3xl border border-white/10 bg-white/5 p-6 hover:bg-white/10">
-                  <div className="mb-5 h-16 w-16 overflow-hidden rounded-2xl"><Img src={index % 2 === 0 ? content.images.coal : content.images.fire} alt={item.title} /></div>
+                  <div className="mb-5 h-16 w-16 overflow-hidden rounded-2xl"><Img src={index % 2 === 0 ? content.images.coal : content.images.fire} alt={item.title} fit={index % 2 === 0 ? imageFit("coal") : imageFit("fire")} /></div>
                   <h3 className="mb-3 text-xl font-black">{item.title}</h3>
                   <p className="leading-7 text-neutral-400">{item.text}</p>
                 </div>
@@ -652,7 +708,7 @@ function LandingPage({ content, goAdmin }) {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {content.uses.map((item, index) => (
                 <div key={index} className="overflow-hidden rounded-3xl border border-white/10 bg-white/5">
-                  <div className="h-44 bg-neutral-900"><Img src={imageUrl(item.image)} alt={item.title} /></div>
+                  <div className="h-44 bg-neutral-900"><Img src={imageUrl(item.image)} alt={item.title} fit={imageFit(item.image)} /></div>
                   <div className="p-6"><h3 className="mb-3 text-xl font-black">{item.title}</h3><p className="leading-7 text-neutral-400">{item.text}</p></div>
                 </div>
               ))}
@@ -669,7 +725,7 @@ function LandingPage({ content, goAdmin }) {
             <div className="grid gap-5 lg:grid-cols-3">
               {content.products.map((item, index) => (
                 <div key={index} className="overflow-hidden rounded-3xl border border-white/10 bg-neutral-950 shadow-xl">
-                  <div className="relative h-64 bg-neutral-900"><Img src={imageUrl(item.image)} alt={item.title} /><div className="absolute left-5 top-5 rounded-full bg-orange-500/90 px-3 py-1 text-xs font-black">{item.badge}</div></div>
+                  <div className="relative h-64 bg-neutral-900"><Img src={imageUrl(item.image)} alt={item.title} fit={imageFit(item.image)} /><div className="absolute left-5 top-5 rounded-full bg-orange-500/90 px-3 py-1 text-xs font-black">{item.badge}</div></div>
                   <div className="p-6"><h3 className="text-2xl font-black">{item.title}</h3><p className="mt-2 font-bold text-orange-300">{item.subtitle}</p><p className="mt-4 leading-7 text-neutral-400">{item.text}</p></div>
                 </div>
               ))}
@@ -701,7 +757,7 @@ function LandingPage({ content, goAdmin }) {
         </section>
 
         <section id="contact" className="relative overflow-hidden bg-neutral-950 px-4 py-20 sm:px-6 lg:px-8">
-          <div className="absolute inset-0 opacity-20"><Img src={content.images.fire} alt="fire" /></div>
+          <div className="absolute inset-0 opacity-20"><Img src={content.images.fire} alt="fire" fit={imageFit("fire")} /></div>
           <div className="relative mx-auto max-w-5xl rounded-3xl border border-white/10 bg-neutral-900/90 p-8 text-center shadow-2xl backdrop-blur sm:p-12">
             <p className="mb-3 text-sm font-black uppercase tracking-widest text-orange-400">Захиалга</p><h2 className="text-4xl font-black tracking-tight sm:text-5xl">Захиалга өгөхөд бэлэн үү?</h2><p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-neutral-400">Үнэ, хүргэлт, бөөний нөхцөлийг шууд утсаар лавлаарай.</p>
             <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row"><a href={phoneHref} className="rounded-2xl bg-orange-500 px-8 py-4 text-lg font-black hover:bg-orange-600">{content.brand.phone} дугаарт залгах</a><a href={content.facebookUrl} target="_blank" rel="noreferrer" className="rounded-2xl border border-white/15 px-8 py-4 text-lg font-black hover:bg-white/10">Facebook-р холбогдох</a></div>
